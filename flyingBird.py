@@ -19,7 +19,7 @@ class Circ(pygame.sprite.Sprite):
         self.outer_radius = outer_radius
         self.image = pygame.Surface(
             [2 * self.outer_radius, 2 * self.outer_radius], pygame.SRCALPHA, 32
-        )
+        ).convert_alpha()
         self.image.fill((255, 255, 255, 0))
         self.rect = self.image.get_rect()
         pygame.draw.circle(
@@ -100,11 +100,11 @@ class Bird(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.images = []
-        self.images.append(pygame.image.load("birdFlying1.png"))
-        self.images.append(pygame.image.load("birdFlying2.png"))
-        self.images.append(pygame.image.load("birdFlying3.png"))
-        self.images.append(pygame.image.load("birdFlying4.png"))
-        self.images.append(pygame.image.load("birdFlying5.png"))
+        self.images.append(pygame.image.load("birdFlying1.png").convert_alpha())
+        self.images.append(pygame.image.load("birdFlying2.png").convert_alpha())
+        self.images.append(pygame.image.load("birdFlying3.png").convert_alpha())
+        self.images.append(pygame.image.load("birdFlying4.png").convert_alpha())
+        self.images.append(pygame.image.load("birdFlying5.png").convert_alpha())
         self.count = 0
         self.radius = 10  # for collision_circle
 
@@ -215,7 +215,7 @@ def info(screen):
     textSurface2 = largeFont.render(
         "into the golden nest without getting", True, (155, 0, 0)
     )
-    textSurface3 = largeFont.render("captured by the blue bubble.", True, (155, 0, 0))
+    textSurface3 = largeFont.render("captured by the blue bubbles.", True, (155, 0, 0))
     textSurface4 = largeFont.render("Click to play.", True, (0, 0, 0))
     textSurface5 = unicode_font.render("一只鸟在飞", True, (0, 0, 0))
     textRect1 = textSurface1.get_rect()
@@ -257,9 +257,9 @@ def add_bubbles(screen, bubbles):
                 (70, 130, 180, 150),
                 winWidth / 2,
                 winHeight / 2,
-                int((0.3 * i) ** 2 * 1.5), # size
-                (0.9 * i) ** 0.85 * 0.1 - 0.3, # position
-                1 + 0.2 * i**1.5, # speed
+                int((0.3 * i) ** 2 * 1.5),  # size
+                (0.9 * i) ** 0.85 * 0.1 - 0.3,  # position
+                1 + 0.2 * i**1.5,  # speed
             )
         )
 
@@ -307,11 +307,15 @@ def main():
         ):
             losses += 1
             captured(screen, wins, losses)
-            del bird, nest  # delete the old objects
+
+            # delete the old objects
+            del bird, nest
             for bubble in bubbles:
                 del bubble
             bubbles.empty()
-            nest = Nest(screen)  # create new ones
+
+            # create new ones
+            nest = Nest(screen)
             bird = Bird(screen)
             add_bubbles(screen, bubbles)
 
@@ -321,11 +325,15 @@ def main():
         ):
             wins += 1
             won(screen, wins, losses, applause)
-            del bird, nest  # delete the old objects
+
+            # delete the old objects
+            del bird, nest
             for bubble in bubbles:
                 del bubble
             bubbles.empty()
-            nest = Nest(screen)  # create new ones
+
+            # create new ones
+            nest = Nest(screen)
             bird = Bird(screen)
             add_bubbles(screen, bubbles)
 

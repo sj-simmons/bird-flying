@@ -115,6 +115,10 @@ class Bird(pygame.sprite.Sprite):
         self.x += dx / 10
         self.y += (mouse[1] - self.y) / 10
 
+        # Keep the bird on screen.
+        self.x = max(0, min(winWidth, self.x))
+        self.y = max(0, min(winHeight, self.y))
+
         # Cycle through the birdflying images.
         self.count += 1
         self.count = self.count % len(self.images)
@@ -275,9 +279,79 @@ def add_bubbles(screen, bubbles):
         )
 
 
-def minimax(mouse, nest, bubbles):
+def minimax(bird, nest, bubbles, depth=4):
+    bx, by = bird.x, bird.y
+    nx, ny = nest.x, nest.y
+    nest_mt = nest.move_to
+    bird_radius = bird.radius
+    bub_states = [(b.x, b.y, b.t, b.speed, b.outer_radius) for b in bubbles]
 
-    return mouse.pos
+    def evaluate(bx, by, nx, ny, bubs):
+        dist_to_nest = ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5
+        if dist_to_nest < 10:
+            return 10000
+        min_margin = float("inf")
+        for bbx, bby, _, _, b_or in bubs:
+            dist = ((bx - bbx) ** 2 + (by - bby) ** 2) ** 0.5
+            collision_dist = (b_or + bird_radius) * 0.8
+            margin = dist - collision_dist
+            if margin < min_margin:
+                min_margin = margin
+        if min_margin < 0:
+            return -10000
+        score = -dist_to_nest + 3.0 * min(min_margin, 150)
+        if min_margin < 40:
+            score -= 500 * (40 - min_margin) / 40
+        return score
+
+    def clamp(x, y):
+        return max(0, min(winWidth, x)), max(0, min(winHeight, y))
+
+    def gen_moves(bx, by, nx, ny):
+        step = 120
+        moves = [
+            (nx, ny),  # straight to nest
+            (bx + step, by),
+            (bx - step, by),
+            (bx, by + step),
+            (bx, by - step),
+            (bx + step, by + step),
+            (bx + step, by - step),
+            (bx - step, by + step),
+            (bx - step, by - step),
+        ]
+        return [clamp(mx, my) for mx, my in moves]
+
+    def sim_step(bx, by, nx, ny, n_mt, bubs, move):
+        nbx = bx + (move[0] - bx) / 10
+        nby = by + (move[1] - by) / 10
+        nbx, nby = clamp(nbx, nby)
+        nnx = nx + (n_mt[0] - nx) / 125
+        nny = ny + (n_mt[1] - ny) / 125
+        new_bubs = []
+        for bbx, bby, t, spd, b_or in bubs:
+            nbbx = bbx + ((1 - t) * nbx + t * nnx - bbx) / spd
+            nbby = bby + ((1 - t) * nby + t * nny - bby) / spd
+            new_bubs.append((nbbx, nbby, t, spd, b_or))
+        return nbx, nby, nnx, nny, new_bubs
+
+    def search(bx, by, nx, ny, n_mt, bubs, d):
+        if d == 0:
+            return evaluate(bx, by, nx, ny, bubs), None
+        best_score = float("-inf")
+        best_move = (nx, ny)
+        for move in gen_moves(bx, by, nx, ny):
+            nbx, nby, nnx, nny, new_bubs = sim_step(
+                bx, by, nx, ny, n_mt, bubs, move
+            )
+            score, _ = search(nbx, nby, nnx, nny, n_mt, new_bubs, d - 1)
+            if score > best_score:
+                best_score = score
+                best_move = move
+        return best_score, best_move
+
+    _, best_move = search(bx, by, nx, ny, nest_mt, bub_states, depth)
+    return best_move
 
 
 def main():
@@ -307,10 +381,11 @@ def main():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEMOTION:
-                if AI == "minimax":
-                    mouse = minimax(event, nest, bubbles)
-                else:
+                if AI != "minimax":
                     mouse = event.pos
+
+        if AI == "minimax":
+            mouse = minimax(bird, nest, bubbles)
 
         screen.blit(background_image, (0, 0))
 

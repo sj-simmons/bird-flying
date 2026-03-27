@@ -5,6 +5,7 @@ from random import randint
 winWidth = 900
 winHeight = 700
 FPS = 10
+AI = None
 
 
 class Circ(pygame.sprite.Sprite):
@@ -207,6 +208,9 @@ def won(screen, wins, losses, applause):
 
 
 def info(screen):
+
+    global AI
+
     unicode_font = pygame.font.Font("Cyberbit.ttf", 80)
     largeFont = pygame.font.SysFont("Arial", 35)
     textSurface1 = largeFont.render(
@@ -218,21 +222,25 @@ def info(screen):
     textSurface3 = largeFont.render("captured by the blue bubbles.", True, (155, 0, 0))
     textSurface4 = largeFont.render("Click to play.", True, (0, 0, 0))
     textSurface5 = unicode_font.render("一只鸟在飞", True, (0, 0, 0))
+    textSurface6 = largeFont.render("Or type m to let minimax play.", True, (0, 0, 0))
     textRect1 = textSurface1.get_rect()
     textRect2 = textSurface2.get_rect()
     textRect3 = textSurface3.get_rect()
     textRect4 = textSurface4.get_rect()
     textRect5 = textSurface5.get_rect()
+    textRect6 = textSurface6.get_rect()
     textRect1.center = (winWidth / 2, 2 * winHeight / 5)
     textRect2.center = (winWidth / 2, winHeight / 2)
     textRect3.center = (winWidth / 2, 3 * winHeight / 5)
     textRect4.center = (int(winWidth / 2), int(4 * winHeight / 5))
     textRect5.center = (int(winWidth / 2), int(winHeight / 7))
+    textRect6.center = (int(winWidth / 2), int(9 * winHeight / 10))
     screen.blit(textSurface1, textRect1)
     screen.blit(textSurface2, textRect2)
     screen.blit(textSurface3, textRect3)
     screen.blit(textSurface4, textRect4)
     screen.blit(textSurface5, textRect5)
+    screen.blit(textSurface6, textRect6)
 
     paused = True
 
@@ -242,6 +250,9 @@ def info(screen):
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                return True
+            elif event.type == KEYUP and event.key == K_m:
+                AI = "minimax"
                 return True
 
         pygame.display.update()
@@ -262,6 +273,11 @@ def add_bubbles(screen, bubbles):
                 1 + 0.2 * i**1.5,  # speed
             )
         )
+
+
+def minimax(mouse, nest, bubbles):
+
+    return mouse.pos
 
 
 def main():
@@ -291,7 +307,10 @@ def main():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEMOTION:
-                mouse = event.pos
+                if AI == "minimax":
+                    mouse = minimax(event, nest, bubbles)
+                else:
+                    mouse = event.pos
 
         screen.blit(background_image, (0, 0))
 

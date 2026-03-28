@@ -226,7 +226,7 @@ def info(screen):
     textSurface3 = largeFont.render("captured by the blue bubbles.", True, (155, 0, 0))
     textSurface4 = largeFont.render("Click to play.", True, (0, 0, 0))
     textSurface5 = unicode_font.render("一只鸟在飞", True, (0, 0, 0))
-    textSurface6 = largeFont.render("Or type m to let minimax play.", True, (0, 0, 0))
+    textSurface6 = largeFont.render("Type m for minimax or e for expectimax.", True, (0, 0, 0))
     textRect1 = textSurface1.get_rect()
     textRect2 = textSurface2.get_rect()
     textRect3 = textSurface3.get_rect()
@@ -257,6 +257,9 @@ def info(screen):
                 return True
             elif event.type == KEYUP and event.key == K_m:
                 AI = "minimax"
+                return True
+            elif event.type == KEYUP and event.key == K_e:
+                AI = "expectimax"
                 return True
 
         pygame.display.update()
@@ -354,6 +357,152 @@ def minimax(bird, nest, bubbles, depth=4):
     return best_move
 
 
+def expectimax(bird, nest, bubbles, depth=4):
+    bx, by = bird.x, bird.y
+    nx, ny = nest.x, nest.y
+    nest_mt = nest.move_to
+    bird_radius = bird.radius
+    bub_states = [(b.x, b.y, b.t, b.speed, b.outer_radius) for b in bubbles]
+
+    frames_per_step = 4
+    # Probability the nest picks a new random target during frames_per_step frames
+    p_change = 1 - 0.99 ** frames_per_step  # ≈ 0.04
+    # Representative targets that sample the screen for the chance node
+    nr = nest.radius
+    rand_targets = [
+        (winWidth * 0.25, winHeight * 0.25),
+        (winWidth * 0.75, winHeight * 0.25),
+        (winWidth * 0.25, winHeight * 0.75),
+        (winWidth * 0.75, winHeight * 0.75),
+    ]
+
+    def clamp(x, y):
+        return max(0, min(winWidth, x)), max(0, min(winHeight, y))
+
+    def evaluate(bx, by, nx, ny, bubs):
+        dist_to_nest = ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5
+        if dist_to_nest < 10:
+            return 10000
+        min_margin = float("inf")
+        for bbx, bby, _, _, b_or in bubs:
+            m = ((bx - bbx) ** 2 + (by - bby) ** 2) ** 0.5 - (b_or + bird_radius) * 0.8
+            if m < min_margin:
+                min_margin = m
+        if min_margin < 0:
+            return -10000
+        path_min = float("inf")
+        for step in range(1, 6):
+            t = step / 6.0
+            px, py = bx + t * (nx - bx), by + t * (ny - by)
+            for bbx, bby, _, _, b_or in bubs:
+                m = ((px - bbx) ** 2 + (py - bby) ** 2) ** 0.5 - (b_or + bird_radius) * 0.8
+                if m < path_min:
+                    path_min = m
+        score = min(path_min, 100) * 5.0 + max(0.0, 300 - dist_to_nest)
+        if dist_to_nest < 80:
+            score += (80 - dist_to_nest) * 25.0
+        safety_weight = min(dist_to_nest / 80.0, 1.0)
+        if min_margin < 50:
+            score -= 300 * (50 - min_margin) / 50 * safety_weight
+        edge = 40
+        if bx < edge:             score -= 200 * (edge - bx) / edge
+        if bx > winWidth - edge:  score -= 200 * (bx - (winWidth - edge)) / edge
+        if by < edge:             score -= 200 * (edge - by) / edge
+        if by > winHeight - edge: score -= 200 * (by - (winHeight - edge)) / edge
+        return score
+
+    def gen_moves(bx, by, nx, ny, bubs):
+        step = 200
+        moves = [
+            (bx, by),
+            (nx, ny),
+            (10 * nx - 9 * bx, 10 * ny - 9 * by),  # lands on nest in 1 frame
+            (bx + step, by), (bx - step, by), (bx, by + step), (bx, by - step),
+            (bx + step, by + step), (bx + step, by - step),
+            (bx - step, by + step), (bx - step, by - step),
+        ]
+        nearest_dist = float("inf")
+        nearest_bub = None
+        for bbx, bby, _, _, _ in bubs:
+            d = ((bx - bbx) ** 2 + (by - bby) ** 2) ** 0.5
+            if d < nearest_dist:
+                nearest_dist, nearest_bub = d, (bbx, bby)
+        if nearest_bub is not None:
+            dx, dy = bx - nearest_bub[0], by - nearest_bub[1]
+            length = (dx ** 2 + dy ** 2) ** 0.5
+            if length > 0:
+                dx, dy = dx / length, dy / length
+                moves += [(bx + dy * step, by - dx * step),
+                          (bx - dy * step, by + dx * step),
+                          (bx + dx * step, by + dy * step)]
+        return [clamp(mx, my) for mx, my in moves]
+
+    def sim(bx, by, nx, ny, n_mt, bubs, move, frames):
+        for _ in range(frames):
+            bx = bx + (move[0] - bx) / 10
+            by = by + (move[1] - by) / 10
+            bx, by = clamp(bx, by)
+            nx = nx + (n_mt[0] - nx) / 125
+            ny = ny + (n_mt[1] - ny) / 125
+            new_bubs, min_margin = [], float("inf")
+            for bbx, bby, t, spd, b_or in bubs:
+                nbbx = bbx + ((1 - t) * bx + t * nx - bbx) / spd
+                nbby = bby + ((1 - t) * by + t * ny - bby) / spd
+                new_bubs.append((nbbx, nbby, t, spd, b_or))
+                m = ((bx - nbbx) ** 2 + (by - nbby) ** 2) ** 0.5 - (b_or + bird_radius) * 0.8
+                if m < min_margin:
+                    min_margin = m
+            bubs = new_bubs
+            if min_margin < 0:
+                return bx, by, nx, ny, bubs, False, True
+            if ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5 < 10:
+                return bx, by, nx, ny, bubs, True, False
+        return bx, by, nx, ny, bubs, False, False
+
+    def search(bx, by, nx, ny, n_mt, bubs, d):
+        if d == 0:
+            return evaluate(bx, by, nx, ny, bubs), None
+
+        # Order moves with a cheap 1-frame sim
+        moves = gen_moves(bx, by, nx, ny, bubs)
+        scored = []
+        for move in moves:
+            nbx, nby, nnx, nny, nb, won, died = sim(bx, by, nx, ny, n_mt, bubs, move, 1)
+            s = 10000 if won else (-10000 if died else evaluate(nbx, nby, nnx, nny, nb))
+            scored.append((s, move))
+        scored.sort(reverse=True, key=lambda x: x[0])
+
+        best_score, best_move = float("-inf"), (nx, ny)
+        for move in [m for _, m in scored[:4]]:
+            nbx, nby, nnx, nny, nb, won, died = sim(bx, by, nx, ny, n_mt, bubs, move, frames_per_step)
+            if won:
+                return 10000, move
+            if died:
+                score = -10000
+            elif d == 1:
+                # Chance node: expected value over nest target uncertainty.
+                # Re-sim with each candidate target and take weighted average.
+                score = (1 - p_change) * evaluate(nbx, nby, nnx, nny, nb)
+                for t in rand_targets:
+                    rb2x, rb2y, rn2x, rn2y, rb2, rw, rd = sim(
+                        bx, by, nx, ny, t, bubs, move, frames_per_step
+                    )
+                    rs = 10000 if rw else (-10000 if rd else evaluate(rb2x, rb2y, rn2x, rn2y, rb2))
+                    score += (p_change / len(rand_targets)) * rs
+            else:
+                score = search(nbx, nby, nnx, nny, n_mt, nb, d - 1)[0]
+
+            if score > best_score:
+                best_score, best_move = score, move
+            if best_score >= 10000:
+                break
+
+        return best_score, best_move
+
+    _, best_move = search(bx, by, nx, ny, nest_mt, bub_states, depth)
+    return best_move
+
+
 def main():
 
     global fpsClock
@@ -381,11 +530,13 @@ def main():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEMOTION:
-                if AI != "minimax":
+                if not AI:
                     mouse = event.pos
 
         if AI == "minimax":
             mouse = minimax(bird, nest, bubbles)
+        elif AI == "expectimax":
+            mouse = expectimax(bird, nest, bubbles)
 
         screen.blit(background_image, (0, 0))
 

@@ -5,7 +5,7 @@ from random import randint
 winWidth = 900
 winHeight = 700
 FPS = 10
-AI = None
+AI = "YOU"
 
 
 class Circ(pygame.sprite.Sprite):
@@ -137,8 +137,8 @@ def captured(screen, wins, losses):
     smallFont = pygame.font.SysFont("Arial", 50)
     largeFont = pygame.font.SysFont("Arial", 80)
     largerFont = pygame.font.SysFont("Arial", 100)
-    textSurface1 = largeFont.render("You let the bird get", True, (155, 0, 0))
-    textSurface2 = largerFont.render("captured!", True, (155, 0, 0))
+    textSurface1 = largeFont.render(f"{AI} let Birdee", True, (155, 0, 0))
+    textSurface2 = largeFont.render("get captured!", True, (155, 0, 0))
     textSurface3 = largeFont.render("Click to try again.", True, (0, 0, 0))
     textSurface4 = smallFont.render(
         "Wins: " + str(wins) + "  Losses: " + str(losses), True, (100, 100, 0)
@@ -152,10 +152,12 @@ def captured(screen, wins, losses):
     textRect3.center = (int(winWidth / 2), int(2 * winHeight / 3))
     textRect4.center = (int(winWidth / 2), int(4 * winHeight / 5))
     screen.blit(textSurface1, textRect1)
-    screen.blit(textSurface2, textRect2)
+    if AI == "YOU":
+        screen.blit(textSurface2, textRect2)
     screen.blit(textSurface3, textRect3)
     screen.blit(textSurface4, textRect4)
 
+    pygame.mixer.music.pause()
     paused = True
 
     while paused:
@@ -164,6 +166,7 @@ def captured(screen, wins, losses):
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                pygame.mixer.music.unpause()
                 paused = False
                 break
 
@@ -175,8 +178,10 @@ def won(screen, wins, losses, applause):
     smallFont = pygame.font.SysFont("Arial", 40)
     largeFont = pygame.font.SysFont("Arial", 60)
     largerFont = pygame.font.SysFont("Arial", 80)
-    textSurface1 = largeFont.render("The bird got to her nest", True, (200, 0, 200))
-    textSurface2 = largerFont.render("YOU WIN!", True, (255, 0, 255))
+    textSurface1 = largeFont.render(
+        "Birdee landed safely in her nest", True, (200, 0, 200)
+    )
+    textSurface2 = largeFont.render(f"because of {AI}!", True, (255, 0, 255))
     textSurface3 = largeFont.render("Click to play again.", True, (0, 100, 100))
     textSurface4 = smallFont.render(
         "Wins: " + str(wins) + "  Losses: " + str(losses), True, (100, 100, 0)
@@ -191,24 +196,28 @@ def won(screen, wins, losses, applause):
     textRect4.center = (int(winWidth / 2), int(4 * winHeight / 5))
     screen.blit(textSurface1, textRect1)
     screen.blit(textSurface2, textRect2)
-    screen.blit(textSurface3, textRect3)
+    if AI == "YOU":
+        screen.blit(textSurface3, textRect3)
     screen.blit(textSurface4, textRect4)
 
     applause.play()
+    pygame.display.update()
 
-    paused = True
+    if AI != "YOU":
+        print(f"wins {wins}; losses {losses}")
+        pygame.time.delay(3000)
+    else:
+        paused = True
+        while paused:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    paused = False
+                    break
 
-    while paused:
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                paused = False
-                break
-
-        pygame.display.update()
-        fpsClock.tick(FPS)
+            fpsClock.tick(FPS)
 
 
 def info(screen):
@@ -217,16 +226,16 @@ def info(screen):
 
     unicode_font = pygame.font.Font("Cyberbit.ttf", 80)
     largeFont = pygame.font.SysFont("Arial", 35)
-    textSurface1 = largeFont.render(
-        "Move the mouse to guide the bird", True, (155, 0, 0)
-    )
+    textSurface1 = largeFont.render("Move the mouse to guide Birdee", True, (155, 0, 0))
     textSurface2 = largeFont.render(
-        "into the golden nest without getting", True, (155, 0, 0)
+        "into her golden nest without getting", True, (155, 0, 0)
     )
     textSurface3 = largeFont.render("captured by the blue bubbles.", True, (155, 0, 0))
-    textSurface4 = largeFont.render("Click to play.", True, (0, 0, 0))
+    textSurface4 = largeFont.render("Click to play", True, (0, 0, 0))
     textSurface5 = unicode_font.render("一只鸟在飞", True, (0, 0, 0))
-    textSurface6 = largeFont.render("Type m for minimax or e for expectimax.", True, (0, 0, 0))
+    textSurface6 = largeFont.render(
+        "Or type m for MINIMAX or e for EXPECTIMAX.", True, (175, 0, 0)
+    )
     textRect1 = textSurface1.get_rect()
     textRect2 = textSurface2.get_rect()
     textRect3 = textSurface3.get_rect()
@@ -254,12 +263,15 @@ def info(screen):
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                print(f"Player is {AI}!")
                 return True
             elif event.type == KEYUP and event.key == K_m:
-                AI = "minimax"
+                AI = "MINIMAX"
+                print(f"Player is {AI}!")
                 return True
             elif event.type == KEYUP and event.key == K_e:
-                AI = "expectimax"
+                AI = "EXPECTIMAX"
+                print(f"Player is {AI}!")
                 return True
 
         pygame.display.update()
@@ -276,13 +288,15 @@ def add_bubbles(screen, bubbles):
                 winWidth / 2,
                 winHeight / 2,
                 int((0.3 * i) ** 2 * 1.5),  # size
-                (0.9 * i) ** 0.85 * 0.1 - 0.3,  # position
+                (0.9 * i) ** 0.85 * 0.1 - 0.3,  # position (t)
                 1 + 0.2 * i**1.5,  # speed
             )
         )
 
 
 def minimax(bird, nest, bubbles, depth=4):
+    """Pick the best mouse target by searching a game tree of depth `depth`.
+    Treats the game as single-agent: the bird maximizes its score at every level."""
     bx, by = bird.x, bird.y
     nx, ny = nest.x, nest.y
     nest_mt = nest.move_to
@@ -290,27 +304,30 @@ def minimax(bird, nest, bubbles, depth=4):
     bub_states = [(b.x, b.y, b.t, b.speed, b.outer_radius) for b in bubbles]
 
     def evaluate(bx, by, nx, ny, bubs):
+        """Heuristic: reward proximity to nest, penalize proximity to bubbles."""
         dist_to_nest = ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5
         if dist_to_nest < 10:
-            return 10000
+            return 10000  # win
         min_margin = float("inf")
         for bbx, bby, _, _, b_or in bubs:
             dist = ((bx - bbx) ** 2 + (by - bby) ** 2) ** 0.5
-            collision_dist = (b_or + bird_radius) * 0.8
+            collision_dist = b_or + bird_radius
             margin = dist - collision_dist
             if margin < min_margin:
                 min_margin = margin
         if min_margin < 0:
-            return -10000
+            return -10000  # collision
         score = -dist_to_nest + 3.0 * min(min_margin, 150)
         if min_margin < 40:
-            score -= 500 * (40 - min_margin) / 40
+            score -= 500 * (40 - min_margin) / 40  # danger zone penalty
         return score
 
     def clamp(x, y):
+        """Keep coordinates within the window."""
         return max(0, min(winWidth, x)), max(0, min(winHeight, y))
 
     def gen_moves(bx, by, nx, ny):
+        """Generate 9 candidate mouse targets: nest + 8 cardinal/diagonal directions."""
         step = 120
         moves = [
             (nx, ny),  # straight to nest
@@ -326,6 +343,7 @@ def minimax(bird, nest, bubbles, depth=4):
         return [clamp(mx, my) for mx, my in moves]
 
     def sim_step(bx, by, nx, ny, n_mt, bubs, move):
+        """Simulate one frame: move bird toward `move`, drift nest, update bubbles."""
         nbx = bx + (move[0] - bx) / 10
         nby = by + (move[1] - by) / 10
         nbx, nby = clamp(nbx, nby)
@@ -339,14 +357,13 @@ def minimax(bird, nest, bubbles, depth=4):
         return nbx, nby, nnx, nny, new_bubs
 
     def search(bx, by, nx, ny, n_mt, bubs, d):
+        """Recursively search all moves, returning (best_score, best_move)."""
         if d == 0:
             return evaluate(bx, by, nx, ny, bubs), None
         best_score = float("-inf")
         best_move = (nx, ny)
         for move in gen_moves(bx, by, nx, ny):
-            nbx, nby, nnx, nny, new_bubs = sim_step(
-                bx, by, nx, ny, n_mt, bubs, move
-            )
+            nbx, nby, nnx, nny, new_bubs = sim_step(bx, by, nx, ny, n_mt, bubs, move)
             score, _ = search(nbx, nby, nnx, nny, n_mt, new_bubs, d - 1)
             if score > best_score:
                 best_score = score
@@ -357,17 +374,19 @@ def minimax(bird, nest, bubbles, depth=4):
     return best_move
 
 
-def expectimax(bird, nest, bubbles, depth=4):
+def expectimax(bird, nest, bubbles, depth=3):
+    """Like minimax but adds chance nodes to handle the nest's random movement.
+    At depth 1, scores are weighted by the probability that the nest changes target."""
     bx, by = bird.x, bird.y
     nx, ny = nest.x, nest.y
     nest_mt = nest.move_to
     bird_radius = bird.radius
     bub_states = [(b.x, b.y, b.t, b.speed, b.outer_radius) for b in bubbles]
 
-    frames_per_step = 4
-    # Probability the nest picks a new random target during frames_per_step frames
-    p_change = 1 - 0.99 ** frames_per_step  # ≈ 0.04
-    # Representative targets that sample the screen for the chance node
+    frames_per_step = 4  # simulate 4 frames per search level
+    # Probability the nest picks a new random target during those frames
+    p_change = 1 - 0.99**frames_per_step  # ≈ 0.04
+    # Four screen quadrant centers used to approximate the random nest target distribution
     nr = nest.radius
     rand_targets = [
         (winWidth * 0.25, winHeight * 0.25),
@@ -377,50 +396,71 @@ def expectimax(bird, nest, bubbles, depth=4):
     ]
 
     def clamp(x, y):
+        """Keep coordinates within the window."""
         return max(0, min(winWidth, x)), max(0, min(winHeight, y))
 
     def evaluate(bx, by, nx, ny, bubs):
+        """Score a state: rewards nest proximity and path clearance,
+        penalizes bubble proximity and being near screen edges."""
         dist_to_nest = ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5
         if dist_to_nest < 10:
-            return 10000
+            return 10000  # win
         min_margin = float("inf")
         for bbx, bby, _, _, b_or in bubs:
-            m = ((bx - bbx) ** 2 + (by - bby) ** 2) ** 0.5 - (b_or + bird_radius) * 0.8
+            m = ((bx - bbx) ** 2 + (by - bby) ** 2) ** 0.5 - (b_or + bird_radius)
             if m < min_margin:
                 min_margin = m
         if min_margin < 0:
-            return -10000
+            return -10000  # collision
+        # Check clearance along the straight-line path to the nest
         path_min = float("inf")
         for step in range(1, 6):
             t = step / 6.0
             px, py = bx + t * (nx - bx), by + t * (ny - by)
             for bbx, bby, _, _, b_or in bubs:
-                m = ((px - bbx) ** 2 + (py - bby) ** 2) ** 0.5 - (b_or + bird_radius) * 0.8
+                m = ((px - bbx) ** 2 + (py - bby) ** 2) ** 0.5 - (b_or + bird_radius)
                 if m < path_min:
                     path_min = m
-        score = min(path_min, 100) * 5.0 + max(0.0, 300 - dist_to_nest)
+        score = min(path_min, 100) * 20.0 + max(0.0, 300 - dist_to_nest)
         if dist_to_nest < 80:
-            score += (80 - dist_to_nest) * 25.0
+            # Reward proximity only if the path is clear; otherwise penalize lingering
+            if path_min > 5:
+                score += (80 - dist_to_nest) * 25.0
+            else:
+                score -= (80 - dist_to_nest) * 15.0
         safety_weight = min(dist_to_nest / 80.0, 1.0)
         if min_margin < 50:
             score -= 300 * (50 - min_margin) / 50 * safety_weight
+        # Edge avoidance penalty
         edge = 40
-        if bx < edge:             score -= 200 * (edge - bx) / edge
-        if bx > winWidth - edge:  score -= 200 * (bx - (winWidth - edge)) / edge
-        if by < edge:             score -= 200 * (edge - by) / edge
-        if by > winHeight - edge: score -= 200 * (by - (winHeight - edge)) / edge
+        if bx < edge:
+            score -= 200 * (edge - bx) / edge
+        if bx > winWidth - edge:
+            score -= 200 * (bx - (winWidth - edge)) / edge
+        if by < edge:
+            score -= 200 * (edge - by) / edge
+        if by > winHeight - edge:
+            score -= 200 * (by - (winHeight - edge)) / edge
         return score
 
     def gen_moves(bx, by, nx, ny, bubs):
+        """Generate candidate moves: stay, nest, instant-land, 8 directions,
+        plus 3 evasion moves perpendicular/away from the nearest bubble."""
         step = 200
         moves = [
-            (bx, by),
-            (nx, ny),
+            (bx, by),  # hover in place
+            (nx, ny),  # aim for nest
             (10 * nx - 9 * bx, 10 * ny - 9 * by),  # lands on nest in 1 frame
-            (bx + step, by), (bx - step, by), (bx, by + step), (bx, by - step),
-            (bx + step, by + step), (bx + step, by - step),
-            (bx - step, by + step), (bx - step, by - step),
+            (bx + step, by),
+            (bx - step, by),
+            (bx, by + step),
+            (bx, by - step),
+            (bx + step, by + step),
+            (bx + step, by - step),
+            (bx - step, by + step),
+            (bx - step, by - step),
         ]
+        # Add evasion moves away from the nearest bubble
         nearest_dist = float("inf")
         nearest_bub = None
         for bbx, bby, _, _, _ in bubs:
@@ -429,15 +469,19 @@ def expectimax(bird, nest, bubbles, depth=4):
                 nearest_dist, nearest_bub = d, (bbx, bby)
         if nearest_bub is not None:
             dx, dy = bx - nearest_bub[0], by - nearest_bub[1]
-            length = (dx ** 2 + dy ** 2) ** 0.5
+            length = (dx**2 + dy**2) ** 0.5
             if length > 0:
                 dx, dy = dx / length, dy / length
-                moves += [(bx + dy * step, by - dx * step),
-                          (bx - dy * step, by + dx * step),
-                          (bx + dx * step, by + dy * step)]
+                moves += [
+                    (bx + dy * step, by - dx * step),  # perpendicular left
+                    (bx - dy * step, by + dx * step),  # perpendicular right
+                    (bx + dx * step, by + dy * step),  # directly away
+                ]
         return [clamp(mx, my) for mx, my in moves]
 
     def sim(bx, by, nx, ny, n_mt, bubs, move, frames):
+        """Simulate `frames` steps, returning new state + (won, died) flags.
+        Uses 0.8x collision radius for conservative early detection."""
         for _ in range(frames):
             bx = bx + (move[0] - bx) / 10
             by = by + (move[1] - by) / 10
@@ -449,21 +493,25 @@ def expectimax(bird, nest, bubbles, depth=4):
                 nbbx = bbx + ((1 - t) * bx + t * nx - bbx) / spd
                 nbby = bby + ((1 - t) * by + t * ny - bby) / spd
                 new_bubs.append((nbbx, nbby, t, spd, b_or))
-                m = ((bx - nbbx) ** 2 + (by - nbby) ** 2) ** 0.5 - (b_or + bird_radius) * 0.8
+                m = ((bx - nbbx) ** 2 + (by - nbby) ** 2) ** 0.5 - (
+                    b_or + bird_radius
+                ) * 0.8
                 if m < min_margin:
                     min_margin = m
             bubs = new_bubs
             if min_margin < 0:
-                return bx, by, nx, ny, bubs, False, True
+                return bx, by, nx, ny, bubs, False, True  # died
             if ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5 < 10:
-                return bx, by, nx, ny, bubs, True, False
+                return bx, by, nx, ny, bubs, True, False  # won
         return bx, by, nx, ny, bubs, False, False
 
     def search(bx, by, nx, ny, n_mt, bubs, d):
+        """Expectimax search: max nodes pick the best move; at depth 1,
+        a chance node averages over possible nest target changes."""
         if d == 0:
             return evaluate(bx, by, nx, ny, bubs), None
 
-        # Order moves with a cheap 1-frame sim
+        # Pre-sort moves with a cheap 1-frame lookahead, then only fully explore top 4
         moves = gen_moves(bx, by, nx, ny, bubs)
         scored = []
         for move in moves:
@@ -474,20 +522,25 @@ def expectimax(bird, nest, bubbles, depth=4):
 
         best_score, best_move = float("-inf"), (nx, ny)
         for move in [m for _, m in scored[:4]]:
-            nbx, nby, nnx, nny, nb, won, died = sim(bx, by, nx, ny, n_mt, bubs, move, frames_per_step)
+            nbx, nby, nnx, nny, nb, won, died = sim(
+                bx, by, nx, ny, n_mt, bubs, move, frames_per_step
+            )
             if won:
                 return 10000, move
             if died:
                 score = -10000
             elif d == 1:
-                # Chance node: expected value over nest target uncertainty.
-                # Re-sim with each candidate target and take weighted average.
+                # Chance node: weighted average over nest-stays-put vs nest-changes-target
                 score = (1 - p_change) * evaluate(nbx, nby, nnx, nny, nb)
                 for t in rand_targets:
                     rb2x, rb2y, rn2x, rn2y, rb2, rw, rd = sim(
                         bx, by, nx, ny, t, bubs, move, frames_per_step
                     )
-                    rs = 10000 if rw else (-10000 if rd else evaluate(rb2x, rb2y, rn2x, rn2y, rb2))
+                    rs = (
+                        10000
+                        if rw
+                        else (-10000 if rd else evaluate(rb2x, rb2y, rn2x, rn2y, rb2))
+                    )
                     score += (p_change / len(rand_targets)) * rs
             else:
                 score = search(nbx, nby, nnx, nny, n_mt, nb, d - 1)[0]
@@ -523,6 +576,7 @@ def main():
     mouse = 7 * winWidth / 8, 5 * winHeight / 6
     started_the_first_time = False
     wins = losses = 0
+    frame_count = 0
 
     while True:
         for event in pygame.event.get():
@@ -530,13 +584,14 @@ def main():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEMOTION:
-                if not AI:
+                if AI == "YOU":
                     mouse = event.pos
 
-        if AI == "minimax":
+        if AI == "MINIMAX":
             mouse = minimax(bird, nest, bubbles)
-        elif AI == "expectimax":
+        elif AI == "EXPECTIMAX":
             mouse = expectimax(bird, nest, bubbles)
+        frame_count += 1
 
         screen.blit(background_image, (0, 0))
 
